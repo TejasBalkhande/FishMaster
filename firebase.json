@@ -1,1 +1,35 @@
-{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"flutter":{"platforms":{"android":{"default":{"projectId":"fishmaster-87f88","appId":"1:496211936875:android:8a9d8e178dea3d7801932e","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"fishmaster-87f88","configurations":{"android":"1:496211936875:android:8a9d8e178dea3d7801932e","ios":"1:496211936875:ios:cd8da307d4969ee401932e","web":"1:496211936875:web:0ef660348c62672101932e"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "fishmaster-87f88",
+          "appId": "1:496211936875:android:8a9d8e178dea3d7801932e",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "fishmaster-87f88",
+          "configurations": {
+            "android": "1:496211936875:android:8a9d8e178dea3d7801932e",
+            "ios": "1:496211936875:ios:cd8da307d4969ee401932e",
+            "web": "1:496211936875:web:0ef660348c62672101932e"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

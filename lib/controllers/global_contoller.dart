@@ -30,6 +30,14 @@ class GlobalController extends GetxController {
   WeatherData get weather => weatherData.value;
   MarineWeatherData get marine => marineweatherData.value;
 
+  WeatherData getData() {
+    return weatherData.value;
+  }
+
+  MarineWeatherData getMarineData() {
+    return marineweatherData.value;
+  }
+
   @override
   void onInit() {
     if (isLoading.isTrue) fetchLocation();

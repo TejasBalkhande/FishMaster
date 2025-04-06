@@ -13,7 +13,6 @@ dependencies:
     sdk: flutter
   iconsax: ^0.0.8
   fl_chart: ^0.66.0
-  font_awesome_flutter: ^10.8.0
   cupertino_icons: ^1.0.8
   carousel_slider: ^5.0.0
   geocoding: ">1.0.0 <2.3.0-beta"
@@ -31,6 +30,7 @@ dependencies:
   firebase_core: ^3.12.1
   firebase_auth: ^5.5.1
   cloud_firestore: ^5.6.5
+  flutter_launcher_icons: ^0.14.3
 
 
 dev_dependencies:
@@ -38,6 +38,12 @@ dev_dependencies:
     sdk: flutter
   flutter_native_splash: ^2.4.4
   flutter_lints: ^5.0.0
+
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/app_icon2.png"
 
 flutter:
   uses-material-design: true
@@ -71,3 +77,5 @@ flutter:
         - asset: assets/fonts/Poppins-SemiBoldItalic.ttf
         - asset: assets/fonts/Poppins-Thin.ttf
         - asset: assets/fonts/Poppins-ThinItalic.ttf
+
+

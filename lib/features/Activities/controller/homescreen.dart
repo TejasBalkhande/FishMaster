@@ -57,8 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   NavigationDestination _buildNavItem(IconData icon, String label, int index) {
