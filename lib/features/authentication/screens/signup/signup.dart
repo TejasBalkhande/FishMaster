@@ -1,11 +1,8 @@
-import 'package:fishmaster/controllers/global_contoller.dart';
 import 'package:fishmaster/utils/constants/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:get/get.dart';
 import 'package:fishmaster/features/authentication/screens/login/login.dart';
-import 'package:firebase_core/firebase_core.dart';
-import '../../../../firebase_options.dart';
 import 'package:fishmaster/features/authentication/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,10 +12,10 @@ class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
   @override
-  _SignupScreenState createState() => _SignupScreenState();
+  SignupScreenState createState() => SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class SignupScreenState extends State<SignupScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
@@ -33,55 +30,57 @@ class _SignupScreenState extends State<SignupScreen> {
 
 
   Future<User?> _signUp() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    final firstName = _firstNameController.text.trim();
-    final lastName = _lastNameController.text.trim();
-    final username = _usernameController.text.trim();
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
+  final firstName = _firstNameController.text.trim();
+  final lastName = _lastNameController.text.trim();
+  final username = _usernameController.text.trim();
 
-    try {
-      User? user = await _authService.signUp(email, password);
+  try {
+    User? user = await _authService.signUp(email, password);
 
-      if (user != null) {
-        try {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .set({
-            'firstName': firstName,
-            'lastName': lastName,
-            'username': username,
-            'email': email,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set({
+          'firstName': firstName,
+          'lastName': lastName,
+          'username': username,
+          'email': email,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
 
+        if (mounted) { // Ensure the widget is still mounted before accessing context
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Sign-up successful!")),
           );
-          return user;
-
-        } catch (e) {
-          print('Firestore Error: $e');
-          await user.delete();
+        }
+        return user;
+      } catch (e) {
+        await user.delete();
+        if (mounted) { // Ensure the widget is still mounted before accessing context
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Failed to save user data: ${e.toString()}")),
           );
-          return null;
         }
+        return null;
       }
-    } catch (e) {
-      print('Authentication Error: $e');
+    }
+  } catch (e) {
+
+    if (mounted) { // Ensure the widget is still mounted before accessing context
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Sign-up failed: ${e.toString()}")),
       );
-      return null;
     }
     return null;
   }
+  return null;
+}
 
 
-  final GlobalController globalController =
-      Get.put(GlobalController(), permanent: true);
   bool _isChecked = false;
 
   InputDecoration customInputDecoration(String label, IconData icon) {

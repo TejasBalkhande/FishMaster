@@ -11,7 +11,6 @@ class AuthService {
       );
       return userCredential.user;
     } catch (e) {
-      print('Sign Up Error: $e');
       return null;
     }
   }
@@ -23,8 +22,8 @@ class AuthService {
         password: password,
       );
       return credential.user;
-    } on FirebaseAuthException catch (e) {
-      throw e; // Re-throw for proper error handling
+    } on FirebaseAuthException {
+      rethrow; // Re-throw for proper error handling
     } catch (e) {
       throw Exception('Login failed');
     }

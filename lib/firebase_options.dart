@@ -47,30 +47,29 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyD16Gg5c2gj63HLtrCFarqPnAdYiDUT_lU',
-    appId: '1:496211936875:web:0ef660348c62672101932e',
-    messagingSenderId: '496211936875',
-    projectId: 'fishmaster-87f88',
-    authDomain: 'fishmaster-87f88.firebaseapp.com',
-    storageBucket: 'fishmaster-87f88.firebasestorage.app',
-    measurementId: 'G-VNFWNL852W',
+    apiKey: 'AIzaSyAe6haKKiYTUYreFK9CjfiVWm92_nBu2AI',
+    appId: '1:881438887591:web:1211bf72b012413db5d582',
+    messagingSenderId: '881438887591',
+    projectId: 'fishmap-bf479',
+    authDomain: 'fishmap-bf479.firebaseapp.com',
+    storageBucket: 'fishmap-bf479.firebasestorage.app',
+    measurementId: 'G-8FTDZKGLSP',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCid0fr2uCy9JA7UN3q2a_oDwzlfsKHJZA',
-    appId: '1:496211936875:android:8a9d8e178dea3d7801932e',
-    messagingSenderId: '496211936875',
-    projectId: 'fishmaster-87f88',
-    storageBucket: 'fishmaster-87f88.firebasestorage.app',
+    apiKey: 'AIzaSyCCvx0ULT8B8-I7hvGHjIVAz_KqyWVxAyU',
+    appId: '1:881438887591:android:c5fc13d9610af822b5d582',
+    messagingSenderId: '881438887591',
+    projectId: 'fishmap-bf479',
+    storageBucket: 'fishmap-bf479.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDClQNvN_wUbipHNieacXEnVTjoh01Tyoo',
-    appId: '1:496211936875:ios:cd8da307d4969ee401932e',
-    messagingSenderId: '496211936875',
-    projectId: 'fishmaster-87f88',
-    storageBucket: 'fishmaster-87f88.firebasestorage.app',
+    apiKey: 'AIzaSyCkGRn311xH0SGel96NtGWYOj3Yhf_s59o',
+    appId: '1:881438887591:ios:5a54d6392e8f868bb5d582',
+    messagingSenderId: '881438887591',
+    projectId: 'fishmap-bf479',
+    storageBucket: 'fishmap-bf479.firebasestorage.app',
     iosBundleId: 'com.example.fishmaster',
   );
-
 }

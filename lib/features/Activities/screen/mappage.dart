@@ -12,10 +12,10 @@ class MapPage extends StatefulWidget {
 
 
   @override
-  _MapPageState createState() => _MapPageState();
+  MapPageState createState() => MapPageState();
 }
 
-class _MapPageState extends State<MapPage> {
+class MapPageState extends State<MapPage> {
   List<LatLng> fishLocations = [];
   late GoogleMapController mapController;
   LatLng _currentPosition = LatLng(9.5, 80.3); // Default location

@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fishmaster/features/authentication/auth_service.dart';
 import 'package:fishmaster/features/Activities/controller/homescreen.dart';
-import 'package:fishmaster/features/authentication/screens/signup/signup.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,10 +13,10 @@ class LoginScreen extends StatefulWidget {
 
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  LoginScreenState createState() => LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class LoginScreenState extends State<LoginScreen> {
   bool _isChecked = false; // Checkbox state
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();

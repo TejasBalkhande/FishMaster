@@ -1,6 +1,5 @@
-//home
-import 'package:fishmaster/controllers/global_contoller.dart';
-import 'package:fishmaster/features/Activities/fish_name_string/TamilFish.dart';
+import 'package:fishmaster/controllers/global_controller.dart';
+import 'package:fishmaster/features/Activities/fish_name_string/tamilfish.dart';
 import 'package:fishmaster/features/Activities/screen/marineweatherpage.dart';
 import 'package:fishmaster/features/Activities/screen/searchPage.dart';
 import 'package:fishmaster/models/Marine/finalmarineData/marine_data.dart';
@@ -32,21 +31,9 @@ class HomepageState extends State<Homepage> {
   String selectedGear = "Hook & Line";
   String searchText = "";
 
+  List<TamilFish> allFishes = fishList;
+  // ignore: unused_field
   int _currentIndex = 0;
-  final List<Fish> fishList = [
-    Fish(
-        imageUrl: 'assets/images/Salmon.png',
-        name: 'Salmon',
-        distance: '2.5 km Away'),
-    Fish(
-        imageUrl: 'assets/images/Tuna.png',
-        name: 'Tuna',
-        distance: '3.8 km Away'),
-    Fish(
-        imageUrl: 'assets/images/Trout.png',
-        name: 'Trout',
-        distance: '1.2 km Away'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -57,14 +44,13 @@ class HomepageState extends State<Homepage> {
     int timestamp = DateUtil.getCurrentTimestamp();
     String formattedDate = DateUtil.formatTimestamp(timestamp);
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Image.asset(
-          'assets/logos/fisher.png',
+          'assets/logos/applogo.png',
           height: 60,
         ),
         backgroundColor: Colors.white,
-        elevation: 1,
         centerTitle: true,
       ),
       body: SafeArea(
@@ -72,21 +58,23 @@ class HomepageState extends State<Homepage> {
           padding: const EdgeInsets.all(16),
           children: [
             _buildUserInfo(
-              name: "Tejas Balkhande",
+              name: "Fishermen",
               message: "It's a great day to go fishing!",
             ),
             const SizedBox(height: 30),
             _buildLocalWeather(
               location: "$city, $state",
               date: formattedDate,
-              temperature: "${weather.current?.current.temp}°C",
-              rainLevel: "${weather.minutely?.minutely[0].precipitation}",
+              temperature:
+                  "${weather.current?.current.temp?.toStringAsFixed(1) ?? 'N/A'}°C",
+              rainLevel:
+                  "${weather.minutely?.minutely.firstOrNull?.precipitation ?? 'N/A'}",
               waveHeight:
-                  "${marineWeather.current?.current.waveHeight} ${marineWeather.currentunits?.currentunits.waveHeight}",
+                  "${marineWeather.current?.current.waveHeight?.toStringAsFixed(1) ?? 'N/A'} ${marineWeather.currentunits?.currentunits.waveHeight ?? ''}",
               ssT:
-                  "${marineWeather.current?.current.seaSurfaceTemperature} ${marineWeather.currentunits?.currentunits.seaSurfaceTemperature}",
-
-              windSpeed: "${(weather.current?.current.windSpeed)} m/s",
+                  "${marineWeather.current?.current.seaSurfaceTemperature?.toStringAsFixed(1) ?? 'N/A'} ${marineWeather.currentunits?.currentunits.seaSurfaceTemperature ?? ''}",
+              windSpeed:
+                  "${weather.current?.current.windSpeed?.toStringAsFixed(1) ?? 'N/A'} m/s",
             ),
             const SizedBox(height: 20),
             _buildSearchBar(context),
@@ -95,9 +83,8 @@ class HomepageState extends State<Homepage> {
             const SizedBox(height: 20),
             _buildSectionTitle("Available Fishes"),
             const SizedBox(height: 10),
-            _buildCarousel(fishList),
-            const SizedBox(height: 10),
-            _buildIndicator(fishList),
+            _buildCarousel(allFishes),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -115,21 +102,21 @@ class HomepageState extends State<Homepage> {
               style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
-                  color: Colors.blueGrey),
+                  color: Colors.black87),
             ),
             Text(
               name,
               style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
-                  color: Colors.blueGrey),
+                  color: Color.fromRGBO(16, 81, 171, 1.0)),
             ),
           ],
         ),
         const SizedBox(height: 8),
         Text(
           message,
-          style: const TextStyle(fontSize: 14, color: Colors.black54),
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
         ),
       ],
     );
@@ -151,7 +138,7 @@ class HomepageState extends State<Homepage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: Color.fromRGBO(16, 81, 171, 1.0),
             blurRadius: 6,
             offset: const Offset(2, 2),
           ),
@@ -169,7 +156,7 @@ class HomepageState extends State<Homepage> {
                 style: const TextStyle(
                   fontSize: 20, // Increased font size
                   fontWeight: FontWeight.bold,
-                  color: Colors.blueGrey,
+                  color: Color.fromRGBO(16, 81, 171, 1.0),
                 ),
               ),
               const SizedBox(height: 4), // Spacing between location and date
@@ -177,7 +164,7 @@ class HomepageState extends State<Homepage> {
                 date,
                 style: const TextStyle(
                   fontSize: 16, // Slightly larger for better visibility
-                  color: Colors.black54,
+                  color: Colors.black,
                 ),
               ),
             ],
@@ -229,13 +216,20 @@ class HomepageState extends State<Homepage> {
                   MaterialPageRoute(builder: (context) => MarinePage()),
                 );
               },
-              child: const Text(
-                "Marine Weather",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Marine Weather",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color.fromRGBO(16, 81, 171, 1.0),
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward, size: 22, color: Colors.blue),
+                ],
               ),
             ),
           ),
@@ -247,7 +241,7 @@ class HomepageState extends State<Homepage> {
   Widget _buildWeatherInfo(IconData icon, String label, String value) {
     return Column(
       children: [
-        Icon(icon, size: 22, color: Colors.blueGrey),
+        Icon(icon, size: 22, color: Color.fromRGBO(16, 81, 171, 1.0)),
         const SizedBox(height: 4),
         Text(
           value,
@@ -268,12 +262,11 @@ class HomepageState extends State<Homepage> {
           context,
           MaterialPageRoute(builder: (context) => SearchPage()),
         );
+        print("Selected fishes: $selectedFishes");
         if (selectedFishes != null && selectedFishes.isNotEmpty) {
-          String selectedFishNames =
-              selectedFishes.map((fish) => fish.localName).join(", ");
           setState(() {
             searchText =
-                selectedFishNames;
+                selectedFishes.map((fish) => fish.localName).join(", ");
           });
         }
       },
@@ -283,17 +276,19 @@ class HomepageState extends State<Homepage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
-            BoxShadow(color: Colors.grey.withAlpha(51), blurRadius: 4),
+            BoxShadow(color: Color.fromRGBO(16, 81, 171, 1.0).withAlpha(51), blurRadius: 6),
           ],
         ),
         child: Row(
           children: [
-            const Icon(Icons.search, color: Colors.grey, size: 20),
+            const Icon(Icons.search, color: Color.fromRGBO(16, 81, 171, 1.0), size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                searchText.isNotEmpty ? searchText : "Search for specific fishes...",
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                searchText.isNotEmpty
+                    ? searchText
+                    : "Search for specific fishes...",
+                style: const TextStyle(fontSize: 14, color: Color.fromRGBO(16, 81, 171, 1.0)),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -327,8 +322,8 @@ class HomepageState extends State<Homepage> {
                     selectedGear = newValue!;
                   });
                 },
-                style: const TextStyle(fontSize: 16, color: Colors.blueGrey),
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.blueGrey),
+                style: const TextStyle(fontSize: 16, color: Color.fromRGBO(16, 81, 171, 1.0)),
+                icon: const Icon(Icons.arrow_drop_down, color: Color.fromRGBO(16, 81, 171, 1.0)),
                 isExpanded: true,
                 items: [
                   DropdownMenuItem(
@@ -336,7 +331,7 @@ class HomepageState extends State<Homepage> {
                     child: Row(
                       children: const [
                         FaIcon(FontAwesomeIcons.fish,
-                            color: Colors.blueGrey, size: 20),
+                            color: Color.fromRGBO(16, 81, 171, 1.0), size: 20),
                         SizedBox(width: 8),
                         Text("Hook & Line", style: TextStyle(fontSize: 16)),
                       ],
@@ -346,7 +341,7 @@ class HomepageState extends State<Homepage> {
                     value: "Gillnets",
                     child: Row(
                       children: const [
-                        Icon(Icons.grid_3x3, color: Colors.blueGrey, size: 20),
+                        Icon(Icons.grid_3x3, color: Color.fromRGBO(16, 81, 171, 1.0), size: 20),
                         SizedBox(width: 8),
                         Text("Gillnets", style: TextStyle(fontSize: 16)),
                       ],
@@ -357,7 +352,7 @@ class HomepageState extends State<Homepage> {
                     child: Row(
                       children: const [
                         Icon(Icons.line_weight,
-                            color: Colors.blueGrey, size: 20),
+                            color: Color.fromRGBO(16, 81, 171, 1.0), size: 20),
                         SizedBox(width: 8),
                         Text("Longlines", style: TextStyle(fontSize: 16)),
                       ],
@@ -368,7 +363,7 @@ class HomepageState extends State<Homepage> {
                     child: Row(
                       children: const [
                         Icon(Icons.directions_boat,
-                            color: Colors.blueGrey, size: 20),
+                            color: Color.fromRGBO(16, 81, 171, 1.0), size: 20),
                         SizedBox(width: 8),
                         Text("Trawling", style: TextStyle(fontSize: 16)),
                       ],
@@ -378,7 +373,7 @@ class HomepageState extends State<Homepage> {
                     value: "Purse Seining",
                     child: Row(
                       children: const [
-                        Icon(Icons.anchor, color: Colors.blueGrey, size: 20),
+                        Icon(Icons.anchor, color: Color.fromRGBO(16, 81, 171, 1.0), size: 20),
                         SizedBox(width: 8),
                         Text("Purse Seining", style: TextStyle(fontSize: 16)),
                       ],
@@ -404,7 +399,7 @@ class HomepageState extends State<Homepage> {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF336C8A),
+              backgroundColor: Color.fromRGBO(16, 81, 171, 1.0),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -437,29 +432,30 @@ class HomepageState extends State<Homepage> {
       child: Text(
         title,
         style: const TextStyle(
-            fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+            fontSize: 16, fontWeight: FontWeight.bold, color:Colors.black87),
       ),
     );
   }
 
-  Widget _buildCarousel(List<Fish> fishList) {
+  Widget _buildCarousel(List<TamilFish> fishList) {
     return CarouselSlider.builder(
       itemCount: fishList.length,
       options: CarouselOptions(
+        autoPlay: true,
+        autoPlayInterval: const Duration(seconds: 5),
+        autoPlayAnimationDuration: const Duration(milliseconds: 800),
         height: 180.0,
         enlargeCenterPage: true,
-        // autoPlay: true,
-        // autoPlayInterval: const Duration(seconds: 3),
         onPageChanged: (index, reason) => setState(() => _currentIndex = index),
       ),
       itemBuilder: (context, index, realIndex) {
-        Fish fish = fishList[index];
+        TamilFish fish = fishList[index];
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 5.0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10.0),
             image: DecorationImage(
-              image: AssetImage(fish.imageUrl),
+              image: AssetImage(fish.imagePath),
               fit: BoxFit.cover,
             ),
           ),
@@ -476,7 +472,7 @@ class HomepageState extends State<Homepage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    fish.name,
+                    fish.localName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -484,7 +480,7 @@ class HomepageState extends State<Homepage> {
                     ),
                   ),
                   Text(
-                    fish.distance,
+                    fish.scientificName,
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ],
@@ -493,24 +489,6 @@ class HomepageState extends State<Homepage> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildIndicator(List<Fish> fishList) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(fishList.length, (index) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: _currentIndex == index ? 10.0 : 6.0,
-          height: 6.0,
-          margin: const EdgeInsets.symmetric(horizontal: 3.0),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _currentIndex == index ? Colors.blueGrey : Colors.grey,
-          ),
-        );
-      }),
     );
   }
 }

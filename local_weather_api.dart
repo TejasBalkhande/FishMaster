@@ -35,7 +35,6 @@ class ApiService {
         'rain_probability': (oneCallData['daily'][0]['pop'] * 100).toStringAsFixed(0),
       };
     } catch (e) {
-      print("Error in fetchWeatherData: $e");
       return {}; // Return empty to avoid null errors
     }
   }
@@ -54,7 +53,6 @@ class ApiService {
         'tide_level': '--', // Tide data not available in Open-Meteo's free tier
       };
     } catch (e) {
-      print("Error in fetchMarineData: $e");
       return {}; // Return empty to avoid null errors
     }
   }

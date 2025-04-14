@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "496211936875",
-    "project_id": "fishmaster-87f88",
-    "storage_bucket": "fishmaster-87f88.firebasestorage.app"
+    "project_number": "881438887591",
+    "project_id": "fishmap-bf479",
+    "storage_bucket": "fishmap-bf479.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:496211936875:android:f5a35d30f868d34c01932e",
+        "mobilesdk_app_id": "1:881438887591:android:663de5254930a38db5d582",
         "android_client_info": {
-          "package_name": "com.example.fisherio"
+          "package_name": "com.example.firstvsflutr"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCid0fr2uCy9JA7UN3q2a_oDwzlfsKHJZA"
+          "current_key": "AIzaSyCCvx0ULT8B8-I7hvGHjIVAz_KqyWVxAyU"
         }
       ],
       "services": {
@@ -26,7 +26,7 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:496211936875:android:8a9d8e178dea3d7801932e",
+        "mobilesdk_app_id": "1:881438887591:android:c5fc13d9610af822b5d582",
         "android_client_info": {
           "package_name": "com.example.fishmaster"
         }
@@ -34,7 +34,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCid0fr2uCy9JA7UN3q2a_oDwzlfsKHJZA"
+          "current_key": "AIzaSyCCvx0ULT8B8-I7hvGHjIVAz_KqyWVxAyU"
         }
       ],
       "services": {

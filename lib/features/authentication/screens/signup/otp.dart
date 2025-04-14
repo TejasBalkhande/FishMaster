@@ -8,10 +8,10 @@ class OTPVerificationScreen extends StatefulWidget {
   const OTPVerificationScreen({super.key});
 
   @override
-  _OTPVerificationScreenState createState() => _OTPVerificationScreenState();
+  OTPVerificationScreenState createState() => OTPVerificationScreenState();
 }
 
-class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
+class OTPVerificationScreenState extends State<OTPVerificationScreen> {
   final TextEditingController otpController = TextEditingController();
   bool isResendActive = false;
   int secondsRemaining = 30;

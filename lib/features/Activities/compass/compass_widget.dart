@@ -6,13 +6,13 @@ import 'package:flutter_compass/flutter_compass.dart';
 /// based on the target bearing provided.
 class CompassWidget extends StatefulWidget {
   final double bearing;
-  const CompassWidget({Key? key, required this.bearing}) : super(key: key);
+  const CompassWidget({super.key, required this.bearing});
 
   @override
-  _CompassWidgetState createState() => _CompassWidgetState();
+  CompassWidgetState createState() => CompassWidgetState();
 }
 
-class _CompassWidgetState extends State<CompassWidget> {
+class CompassWidgetState extends State<CompassWidget> {
   double _heading = 0;
 
   @override
