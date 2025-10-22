@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:fishmaster/features/Activities/fish_name_string/tamilfish.dart';
 import '../compass/compass_widget.dart';
 import '../compass/location_utils.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class FishingAreaNearby extends StatefulWidget {
   final String selectedGear;
@@ -22,8 +23,6 @@ class FishingAreaNearby extends StatefulWidget {
 }
 
 class FishingAreaNearbyState extends State<FishingAreaNearby> {
-
-
   bool _showHeatmap = true;
   LatLng? _userLocation;
   LatLng? _markerLocation;
@@ -31,24 +30,20 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
   double _distance = 0.0;
   GoogleMapController? _mapController;
   final Set<Circle> _circles = {};
-  final Set<Marker> _markers = {}; // Markers set for fish occurrences
+  final Set<Marker> _markers = {};
   final Random _random = Random();
   bool _isLoading = true;
   String _currentEffortZone = "Location Not Available";
+  bool _isMapCreated = false;
+  bool _mapsAvailable = true;
 
-
-  Map<String, Map<String, int>> _gearTimeLimits = {}; // Holds time limits from JSON
+  Map<String, Map<String, int>> _gearTimeLimits = {};
 
   int lowEffortTimer = 0;
   int mediumEffortTimer = 0;
   int highEffortTimer = 0;
   Timer? _effortTimer;
 
-
-
-
-
-  // Add a state variable to track if fishing has started
   bool _startedFishing = false;
 
   static const CameraPosition _initialPosition = CameraPosition(
@@ -59,14 +54,27 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
   @override
   void initState() {
     super.initState();
+    _checkMapsAvailability();
     _loadFishingEffortData();
-    // Start fetching occurrences after converting local names to scientific names.
     fetchAllOccurrences();
     _loadPorts();
     _getUserLocation();
     _startLocationUpdates();
     _loadGearTimeLimits();
     _updateCurrentZone();
+  }
+
+  void _checkMapsAvailability() {
+    if (kIsWeb) {
+      // Check if Google Maps is available on web
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _mapsAvailable = true; // Assume available, will catch errors in map creation
+          });
+        }
+      });
+    }
   }
 
   void _updateCurrentZone() {
@@ -77,13 +85,12 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
     }
   }
 
-
   void _updatePolyline() {
     if (_userLocation != null && _markerLocation != null) {
       setState(() {
         _polylines = {
           Polyline(
-            polylineId: PolylineId('fishing-line'),
+            polylineId: const PolylineId('fishing-line'),
             points: [_userLocation!, _markerLocation!],
             color: Colors.deepPurple,
             width: 3,
@@ -94,13 +101,17 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
   }
 
   void _loadGearTimeLimits() async {
-    String jsonString = await rootBundle.loadString('assets/gear_time.json');
-    Map<String, dynamic> jsonData = jsonDecode(jsonString);
+    try {
+      String jsonString = await rootBundle.loadString('assets/gear_time.json');
+      Map<String, dynamic> jsonData = jsonDecode(jsonString);
 
-    setState(() {
-      _gearTimeLimits = jsonData.map((key, value) =>
-          MapEntry(key, Map<String, int>.from(value)));
-    });
+      setState(() {
+        _gearTimeLimits = jsonData.map((key, value) =>
+            MapEntry(key, Map<String, int>.from(value)));
+      });
+    } catch (e) {
+      print("Error loading gear time limits: $e");
+    }
   }
 
   void _checkTimeExceeded() {
@@ -113,23 +124,21 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
       final limit = gearLimits["Low Effort Zone 🔴"] ?? 99999;
       if (lowEffortTimer >= limit * 3600) {
         _showTimeExceededAlert();
-      } else if (lowEffortTimer >= (limit * 3600) - 300) { // 5 minute warning
+      } else if (lowEffortTimer >= (limit * 3600) - 300) {
         _showTimeLimitWarning(limit, lowEffortTimer, "Low Effort Zone 🔴");
       }
-    }
-    else if (_currentEffortZone == "Medium Effort Zone 🟡") {
+    } else if (_currentEffortZone == "Medium Effort Zone 🟡") {
       final limit = gearLimits["Medium Effort Zone 🟡"] ?? 99999;
       if (mediumEffortTimer >= limit * 3600) {
         _showTimeExceededAlert();
-      } else if (mediumEffortTimer >= (limit * 3600) - 300) { // 5 minute warning
+      } else if (mediumEffortTimer >= (limit * 3600) - 300) {
         _showTimeLimitWarning(limit, mediumEffortTimer, "Medium Effort Zone 🟡");
       }
-    }
-    else if (_currentEffortZone == "High Effort Zone 🟢") {
+    } else if (_currentEffortZone == "High Effort Zone 🟢") {
       final limit = gearLimits["High Effort Zone 🟢"] ?? 99999;
       if (highEffortTimer >= limit * 3600) {
         _showTimeExceededAlert();
-      } else if (highEffortTimer >= (limit * 3600) - 300) { // 5 minute warning
+      } else if (highEffortTimer >= (limit * 3600) - 300) {
         _showTimeLimitWarning(limit, highEffortTimer, "High Effort Zone 🟢");
       }
     }
@@ -175,11 +184,11 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
         title: Row(
           children: [
             Icon(icon, color: color, size: 28),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
           ],
         ),
-        content: Text(message, style: TextStyle(fontSize: 16)),
+        content: Text(message, style: const TextStyle(fontSize: 16)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -190,8 +199,6 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
     );
   }
 
-
-
   String _formatTime(int seconds) {
     int hours = seconds ~/ 3600;
     int minutes = (seconds % 3600) ~/ 60;
@@ -201,14 +208,14 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
 
   Widget _buildTimerRow(String label, String time, Color color, double fontSize) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2), // Reduce spacing between rows
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              Icon(Icons.timer, color: color, size: 16), // Smaller icon
-              SizedBox(width: 6), // Reduce spacing between icon and text
+              Icon(Icons.timer, color: color, size: 16),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500, color: color),
@@ -227,77 +234,77 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
   void _startFishing() {
     if (_userLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Waiting for GPS location...")),
+        const SnackBar(content: Text("Waiting for GPS location...")),
       );
       return;
     }
 
     setState(() {
       _startedFishing = true;
-      _currentEffortZone = getCurrentEffortZone(); // Ensure zone is set before starting
+      _currentEffortZone = getCurrentEffortZone();
     });
     _updatePolyline();
 
-    _effortTimer?.cancel(); // Cancel any existing timer
-    _effortTimer = Timer.periodic(Duration(seconds: 1), (Timer t) {
-      setState(() {
-        if (_currentEffortZone == "Low Effort Zone 🔴") {
-          lowEffortTimer++;
-        } else if (_currentEffortZone == "Medium Effort Zone 🟡") {
-          mediumEffortTimer++;
-        } else if (_currentEffortZone == "High Effort Zone 🟢") {
-          highEffortTimer++;
-        }
-      });
-      _checkTimeExceeded(); // Check time limits every second
+    _effortTimer?.cancel();
+    _effortTimer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
+      if (mounted) {
+        setState(() {
+          if (_currentEffortZone == "Low Effort Zone 🔴") {
+            lowEffortTimer++;
+          } else if (_currentEffortZone == "Medium Effort Zone 🟡") {
+            mediumEffortTimer++;
+          } else if (_currentEffortZone == "High Effort Zone 🟢") {
+            highEffortTimer++;
+          }
+        });
+        _checkTimeExceeded();
+      }
     });
   }
 
-
-
-
-
   void _startLocationUpdates() {
     Geolocator.getPositionStream(
-      locationSettings: LocationSettings(accuracy: LocationAccuracy.high),
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     ).listen((Position position) {
-      setState(() {
-        _userLocation = LatLng(position.latitude, position.longitude);
-        _currentEffortZone = getCurrentEffortZone();
-        if (_startedFishing) {
-          _updatePolyline();
-          _checkTimeExceeded();
-        }
-      });
-
+      if (mounted) {
+        setState(() {
+          _userLocation = LatLng(position.latitude, position.longitude);
+          _currentEffortZone = getCurrentEffortZone();
+          if (_startedFishing) {
+            _updatePolyline();
+            _checkTimeExceeded();
+          }
+        });
+      }
     });
   }
 
   Future<void> _getUserLocation() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.always) {
-      Position position = await Geolocator.getCurrentPosition(
-          locationSettings: LocationSettings(
-            accuracy: LocationAccuracy.high,
-          ),);
-      setState(() {
-        _userLocation = LatLng(position.latitude, position.longitude);
-      });
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        Position position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+            ));
+        if (mounted) {
+          setState(() {
+            _userLocation = LatLng(position.latitude, position.longitude);
+          });
+        }
+      }
+    } catch (e) {
+      print("Error getting user location: $e");
     }
   }
 
-
-
-
-
-
   double _calculateDistance(LatLng start, LatLng end) {
-    const double R = 6371e3; // Earth radius in meters
+    const double R = 6371e3;
     double lat1 = start.latitude * pi / 180;
     double lat2 = end.latitude * pi / 180;
     double deltaLat = (end.latitude - start.latitude) * pi / 180;
@@ -307,32 +314,31 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
         cos(lat1) * cos(lat2) *
             sin(deltaLon / 2) * sin(deltaLon / 2);
     double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return R * c / 1000; // Returns distance in km
+    return R * c / 1000;
   }
 
   void _onMapTapped(LatLng tappedPoint) {
-    setState(() {
-      _markerLocation = tappedPoint;
+    if (mounted) {
+      setState(() {
+        _markerLocation = tappedPoint;
 
+        _markers.removeWhere(
+                (marker) => marker.markerId.value == "selected-location");
+        _markers.add(
+          Marker(
+            markerId: const MarkerId("selected-location"),
+            position: tappedPoint,
+            infoWindow: const InfoWindow(title: "Selected Location"),
+          ),
+        );
 
-      // Clear previous marker if needed and add a new one
-      _markers.removeWhere(
-              (marker) => marker.markerId.value == "selected-location");
-      _markers.add(
-        Marker(
-          markerId: MarkerId("selected-location"),
-          position: tappedPoint,
-          infoWindow: InfoWindow(title: "Selected Location"),
-        ),
-      );
-
-      // Calculate distance if user location is available
-      if (_userLocation != null) {
-        _distance = _calculateDistance(_userLocation!, tappedPoint);
+        if (_userLocation != null) {
+          _distance = _calculateDistance(_userLocation!, tappedPoint);
+        }
+      });
+      if (_startedFishing) {
+        _updatePolyline();
       }
-    });
-    if (_startedFishing) {
-      _updatePolyline(); // Update polyline if marker is moved after starting
     }
   }
 
@@ -342,7 +348,7 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
     for (var circle in _circles) {
       double distance = _calculateDistance(_userLocation!, circle.center);
 
-      if (distance <= circle.radius / 1000) { // Convert radius from meters to km
+      if (distance <= circle.radius / 1000) {
         if (circle.fillColor == Colors.red.withAlpha(76)) {
           return "Low Effort Zone 🔴";
         } else if (circle.fillColor == Colors.yellow.withAlpha(76)) {
@@ -355,16 +361,12 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
     return "No Fishing Zone ❌";
   }
 
-
-  // Convert the selectedFishes string (local names) into a list of scientific names
   List<String> getScientificNames(String selectedFishes) {
-    // Split by comma and trim spaces
     List<String> localNames =
     selectedFishes.split(',').map((s) => s.trim()).toList();
     List<String> scientificNames = [];
 
     for (String local in localNames) {
-      // Filter fishList for the matching fish (ignoring case)
       final matches = fishList
           .where((fish) => fish.localName.toLowerCase() == local.toLowerCase());
       if (matches.isNotEmpty) {
@@ -374,8 +376,6 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
     return scientificNames;
   }
 
-  // Fetch occurrence data for one species from GBIF API and add markers
-  // Helper function to get local name from scientific name
   String getLocalName(String scientificName) {
     final matches = fishList.where(
           (fish) => fish.scientificName.toLowerCase() == scientificName.toLowerCase(),
@@ -383,12 +383,12 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
     if (matches.isNotEmpty) {
       return matches.first.localName;
     }
-    return scientificName; // Fallback if no match found
+    return scientificName;
   }
 
   Future<void> fetchOccurrencesForSpecies(String species) async {
     final url =
-        'https://api.gbif.org/v1/occurrence/search?scientificName=$species&limit=100000000';
+        'https://api.gbif.org/v1/occurrence/search?scientificName=$species&limit=100';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -405,9 +405,11 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
               position: LatLng(lat, lon),
               infoWindow: InfoWindow(title: getLocalName(species)),
             );
-            setState(() {
-              _markers.add(marker);
-            });
+            if (mounted) {
+              setState(() {
+                _markers.add(marker);
+              });
+            }
             counter++;
           }
         }
@@ -420,7 +422,6 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
     }
   }
 
-  // Loop through all scientific names and fetch their occurrence data
   Future<void> fetchAllOccurrences() async {
     List<String> scientificNames = getScientificNames(widget.selectedFishes);
     for (String species in scientificNames) {
@@ -433,8 +434,8 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
       String jsonString = await rootBundle.loadString('assets/ports.json');
       List<dynamic> portList = json.decode(jsonString);
 
-      BitmapDescriptor portIcon = await BitmapDescriptor.asset(
-        ImageConfiguration(size: Size(8, 8)),
+      BitmapDescriptor portIcon = await BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(size: Size(8, 8)),
         'assets/port_icon.png',
       );
 
@@ -447,9 +448,11 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
         );
       }).toSet();
 
-      setState(() {
-        _markers.addAll(portMarkers);
-      });
+      if (mounted) {
+        setState(() {
+          _markers.addAll(portMarkers);
+        });
+      }
     } catch (e) {
       debugPrint("Error loading ports: $e");
     }
@@ -457,8 +460,20 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
 
   Future<void> _loadFishingEffortData() async {
     try {
-      final String jsonString =
-      await rootBundle.loadString('assets/response4.json');
+      String jsonString;
+      if (kIsWeb) {
+        // For web, use a different approach to load assets
+        final response = await http.get(Uri.parse('assets/response4.json'));
+        if (response.statusCode == 200) {
+          jsonString = response.body;
+        } else {
+          throw Exception('Failed to load asset on web');
+        }
+      } else {
+        // For mobile, use rootBundle
+        jsonString = await rootBundle.loadString('assets/response4.json');
+      }
+
       final Map<String, dynamic> jsonData = jsonDecode(jsonString);
       final List<dynamic> entries = jsonData['entries'];
       final List<dynamic> fishingData =
@@ -471,7 +486,6 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
         double lon = (item['lon'] as num).toDouble();
         double hours = (item['hours'] as num).toDouble();
 
-        // Slight random offset for visual variety
         lat += _random.nextDouble() * 0.002 - 0.001;
         lon += _random.nextDouble() * 0.002 - 0.001;
 
@@ -484,7 +498,6 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
           baseColor = Colors.green;
         }
 
-        // Create multiple circles per fishing effort record for a heatmap effect
         for (int i = 0; i < 3; i++) {
           double factor = (i + 1) * 1.5;
           double opacity = 255*(0.3 - (i * 0.1)).clamp(0.1, 0.3);
@@ -495,26 +508,28 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
               center: LatLng(lat, lon),
               radius: (500 + (hours * 40)) * factor,
               fillColor: baseColor.withAlpha(opacity.toInt()),
-
               strokeColor: Colors.transparent,
             ),
           );
         }
       }
 
-      setState(() {
-        _circles.addAll(circles);
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _circles.addAll(circles);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint('Error loading fishing effort data: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  // The rest of your code for recommendations, UI, etc. remains unchanged.
   Map<String, dynamic> getFishingRecommendation(String gear) {
     switch (gear) {
       case "Hook & Line":
@@ -573,26 +588,26 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
     if (recommendation.containsKey("message")) {
       return Text(
         recommendation["message"],
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       );
     }
 
     return RichText(
       text: TextSpan(
-        style: TextStyle(
+        style: const TextStyle(
             fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
         children: [
-          TextSpan(
+          const TextSpan(
             text: "High Effort Zone 🟢: ",
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           TextSpan(text: recommendation["High Effort Area"] + "\n\n"),
-          TextSpan(
+          const TextSpan(
             text: "Medium Effort Zone 🟡: ",
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           TextSpan(text: recommendation["Medium Effort Area"] + "\n\n"),
-          TextSpan(
+          const TextSpan(
             text: "Low Effort Zone 🔴: ",
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
@@ -602,15 +617,59 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
     );
   }
 
+  Widget _buildMapWidget() {
+    if (!_mapsAvailable) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red),
+            SizedBox(height: 16),
+            Text(
+              "Google Maps Not Available",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              "Please check your internet connection and try again",
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GoogleMap(
+      initialCameraPosition: _initialPosition,
+      onMapCreated: (controller) {
+        _mapController = controller;
+        _isMapCreated = true;
+      },
+      onCameraMoveStarted: () {
+        // Handle map interaction
+      },
+      circles: _showHeatmap ? _circles : {},
+      markers: _markers,
+      polylines: _polylines,
+      myLocationEnabled: true,
+      myLocationButtonEnabled: false,
+      onTap: _onMapTapped,
+    );
+  }
+
+  @override
+  void dispose() {
+    _effortTimer?.cancel();
+    _mapController?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-
-
     double? targetBearing;
     if (_userLocation != null && _markerLocation != null) {
       targetBearing = calculateBearing(_userLocation!, _markerLocation!);
     }
-
 
     final recommendation = getFishingRecommendation(widget.selectedGear);
     return Scaffold(
@@ -628,29 +687,18 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
           Expanded(
             child: Stack(
               children: [
-                GoogleMap(
-                  initialCameraPosition: _initialPosition,
-                  onMapCreated: (controller) {
-                    _mapController = controller;
-                  },
-                  circles: _showHeatmap ? _circles : {},
-                  markers: _markers,
-                  polylines: _polylines,
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: false,
-                  onTap: _onMapTapped,
-                ),
-                if (_markerLocation != null && _userLocation != null)
+                _buildMapWidget(),
+                if (_markerLocation != null && _userLocation != null && targetBearing != null)
                   Positioned(
                     bottom: 20,
                     left: 20,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        CompassWidget(bearing: targetBearing!),
-                        SizedBox(height: 10), // Adjust spacing as needed
+                        CompassWidget(bearing: targetBearing),
+                        const SizedBox(height: 10),
                         Container(
-                          padding: EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(10),
@@ -660,61 +708,55 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                           ),
                           child: Text(
                             "Distance: ${_distance.toStringAsFixed(2)} km",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
                     ),
                   ),
                 if (_isLoading)
-                  Center(child: CircularProgressIndicator()),
+                  const Center(child: CircularProgressIndicator()),
 
                 if (_startedFishing)
-
                   Positioned(
                     top: 20,
                     right: 20,
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Reduce padding
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(204), // Reduce opacity
+                        color: Colors.white.withAlpha(204),
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
                         ],
                       ),
                       child: Column(
-                        mainAxisSize: MainAxisSize.min, // Shrink box to fit content
-                        crossAxisAlignment: CrossAxisAlignment.start, // Left align content
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Divider(thickness: 1, color: Colors.black26),
+                          const Divider(thickness: 1, color: Colors.black26),
                           _buildTimerRow(" ", _formatTime(highEffortTimer), Colors.green, 14),
                           _buildTimerRow(" ", _formatTime(mediumEffortTimer), Colors.orange, 14),
                           _buildTimerRow(" ", _formatTime(lowEffortTimer), Colors.red, 14),
                         ],
                       ),
                     ),
-
-
                   ),
-
               ],
             ),
           ),
-          // The bottom container changes its content based on _startedFishing
           Container(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20)),
+              const BorderRadius.vertical(top: Radius.circular(20)),
               boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
             ),
-            // Check _startedFishing to decide what to display
             child: _startedFishing
                 ? Container(
-              width: double.infinity, // Makes container full width
-              padding: EdgeInsets.symmetric(vertical: 5),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 5),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
@@ -723,7 +765,7 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                 ],
               ),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16), // Inner left padding
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -737,13 +779,13 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                           });
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color.fromRGBO(16, 81, 171, 1.0),
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          backgroundColor: const Color.fromRGBO(16, 81, 171, 1.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child: Text(
+                        child: const Text(
                           "Stop Fishing",
                           style: TextStyle(
                             fontSize: 16,
@@ -752,12 +794,11 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                           ),
                         ),
                       ),
-
                     Padding(
-                      padding: EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         "Zone: $_currentEffortZone",
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
@@ -778,7 +819,7 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                   children: [
                     RichText(
                       text: TextSpan(
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
@@ -793,7 +834,7 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                           TextSpan(
                             text: widget.selectedGear,
                             style:
-                            TextStyle(fontWeight: FontWeight.w500),
+                            const TextStyle(fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
@@ -806,7 +847,7 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                         Switch(
                           value: _showHeatmap,
                           activeColor:
-                          Color.fromRGBO(16, 81, 171, 1.0),
+                          const Color.fromRGBO(16, 81, 171, 1.0),
                           materialTapTargetSize:
                           MaterialTapTargetSize.shrinkWrap,
                           onChanged: (bool value) {
@@ -819,8 +860,8 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                     ),
                   ],
                 ),
-                SizedBox(height: 3),
-                Text(
+                const SizedBox(height: 3),
+                const Text(
                   "Allowed Fishing hours as per zones ",
                   style: TextStyle(
                     fontSize: 16,
@@ -828,7 +869,7 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                     color: Colors.black87,
                   ),
                 ),
-                SizedBox(height: 5),
+                const SizedBox(height: 5),
                 ListTile(
                   leading: FaIcon(
                     recommendation["icon"],
@@ -837,22 +878,21 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                   ),
                   title: buildRecommendationMessage(recommendation),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Center(
                   child: ElevatedButton(
-                   onPressed: _startFishing, // This replaces all the inline code
-
+                    onPressed: _startFishing,
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
-                      Color.fromRGBO(16, 81, 171, 1.0),
-                      padding: EdgeInsets.symmetric(
+                      const Color.fromRGBO(16, 81, 171, 1.0),
+                      padding: const EdgeInsets.symmetric(
                           horizontal: 50, vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius:
                         BorderRadius.circular(10),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       "Start Fishing",
                       style: TextStyle(
                           fontSize: 18,
@@ -868,27 +908,31 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          LocationPermission permission =
-          await Geolocator.checkPermission();
-          if (permission == LocationPermission.denied ||
-              permission == LocationPermission.deniedForever) {
-            permission = await Geolocator.requestPermission();
-          }
-          if (permission == LocationPermission.whileInUse ||
-              permission == LocationPermission.always) {
-            Position position = await Geolocator.getCurrentPosition(
-                locationSettings: LocationSettings(
-                  accuracy: LocationAccuracy.high,
-                ),);
-            _mapController?.animateCamera(
-              CameraUpdate.newLatLng(
-                LatLng(position.latitude, position.longitude),
-              ),
-            );
+          try {
+            LocationPermission permission =
+            await Geolocator.checkPermission();
+            if (permission == LocationPermission.denied ||
+                permission == LocationPermission.deniedForever) {
+              permission = await Geolocator.requestPermission();
+            }
+            if (permission == LocationPermission.whileInUse ||
+                permission == LocationPermission.always) {
+              Position position = await Geolocator.getCurrentPosition(
+                  locationSettings: const LocationSettings(
+                    accuracy: LocationAccuracy.high,
+                  ));
+              _mapController?.animateCamera(
+                CameraUpdate.newLatLng(
+                  LatLng(position.latitude, position.longitude),
+                ),
+              );
+            }
+          } catch (e) {
+            print("Error moving to current location: $e");
           }
         },
-        backgroundColor: Color.fromRGBO(16, 81, 171, 1.0),
-        child: Icon(Icons.my_location, color: Colors.white),
+        backgroundColor: const Color.fromRGBO(16, 81, 171, 1.0),
+        child: const Icon(Icons.my_location, color: Colors.white),
       ),
     );
   }

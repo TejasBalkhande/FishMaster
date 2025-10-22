@@ -4,12 +4,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-
 class MapPage extends StatefulWidget {
   final String fishSpecies;
 
   const MapPage({required this.fishSpecies, super.key});
-
 
   @override
   MapPageState createState() => MapPageState();
@@ -18,8 +16,9 @@ class MapPage extends StatefulWidget {
 class MapPageState extends State<MapPage> {
   List<LatLng> fishLocations = [];
   late GoogleMapController mapController;
-  LatLng _currentPosition = LatLng(9.5, 80.3); // Default location
+  LatLng _currentPosition = const LatLng(9.5, 80.3); // Default location
   bool _isLoading = true; // Loading state
+  bool _isMapCreated = false;
 
   @override
   void initState() {
@@ -41,35 +40,54 @@ class MapPageState extends State<MapPage> {
       if (permission == LocationPermission.denied) return;
     }
 
-    Position position = await Geolocator.getCurrentPosition();
-    setState(() {
-      _currentPosition = LatLng(position.latitude, position.longitude);
-    });
+    try {
+      Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _currentPosition = LatLng(position.latitude, position.longitude);
+      });
 
-    mapController.animateCamera(
-        CameraUpdate.newLatLngZoom(_currentPosition, 8)); // Initial zoom-out
+      if (_isMapCreated) {
+        mapController.animateCamera(
+            CameraUpdate.newLatLngZoom(_currentPosition, 8));
+      }
+    } catch (e) {
+      print("Error getting location: $e");
+    }
   }
 
   Future<void> fetchFishLocations(String species) async {
-    final response = await http.get(Uri.parse(
-        'https://api.gbif.org/v1/occurrence/search?scientificName=$species&limit=50'));
+    try {
+      final response = await http.get(Uri.parse(
+          'https://api.gbif.org/v1/occurrence/search?scientificName=$species&limit=50'));
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          fishLocations = (data['results'] as List)
+              .where((record) =>
+          record.containsKey('decimalLatitude') &&
+              record.containsKey('decimalLongitude'))
+              .map((record) => LatLng(
+              (record['decimalLatitude'] as num).toDouble(),
+              (record['decimalLongitude'] as num).toDouble()))
+              .toList();
+          _isLoading = false;
+        });
+
+        if (_isMapCreated) {
+          mapController.animateCamera(
+              CameraUpdate.newLatLngZoom(_currentPosition, 12));
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching fish locations: $e");
       setState(() {
-        fishLocations = (data['results'] as List)
-            .where((record) =>
-                record.containsKey('decimalLatitude') &&
-                record.containsKey('decimalLongitude'))
-            .map((record) =>
-                LatLng(record['decimalLatitude'], record['decimalLongitude']))
-            .toList();
-        _isLoading = false; // Stop loading when data is received
+        _isLoading = false;
       });
-
-      // Zoom in after loading fish locations
-      mapController
-          .animateCamera(CameraUpdate.newLatLngZoom(_currentPosition, 12));
     }
   }
 
@@ -78,8 +96,8 @@ class MapPageState extends State<MapPage> {
     return Scaffold(
       appBar: AppBar(
         title: Image.asset(
-          'assets/logos/fisher.png', // Path to your image
-          height: 60, // Adjust the height as needed
+          'assets/logos/fisher.png',
+          height: 60,
         ),
         backgroundColor: Colors.white,
         elevation: 1,
@@ -87,7 +105,6 @@ class MapPageState extends State<MapPage> {
       ),
       body: Column(
         children: [
-          // Fish species name below the AppBar
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Text(
@@ -95,42 +112,48 @@ class MapPageState extends State<MapPage> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color.fromRGBO(51, 108, 138, 1),
+                color: const Color.fromRGBO(51, 108, 138, 1),
               ),
               textAlign: TextAlign.center,
             ),
           ),
-
-          // Map takes up half the screen
           SizedBox(
             height: MediaQuery.of(context).size.height * 0.5,
             child: GoogleMap(
               initialCameraPosition: CameraPosition(
                 target: _currentPosition,
-                zoom: 8, // Initial zoom-out
+                zoom: 8,
               ),
               onMapCreated: (GoogleMapController controller) {
                 mapController = controller;
+                _isMapCreated = true;
+
+                // Try to move camera after map is created
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    mapController.animateCamera(
+                        CameraUpdate.newLatLngZoom(_currentPosition, 8));
+                  }
+                });
               },
               myLocationEnabled: true,
               myLocationButtonEnabled: false,
               markers: {
                 Marker(
-                  markerId: MarkerId('current_location'),
+                  markerId: const MarkerId('current_location'),
                   position: _currentPosition,
                   icon: BitmapDescriptor.defaultMarkerWithHue(
                       BitmapDescriptor.hueBlue),
                 ),
                 ...fishLocations.map((loc) => Marker(
-                      markerId: MarkerId('${loc.latitude},${loc.longitude}'),
-                      position: loc,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueRed),
-                    )),
+                  markerId: MarkerId('${loc.latitude},${loc.longitude}'),
+                  position: loc,
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueRed),
+                )),
               },
             ),
           ),
-
           Expanded(
             child: Center(
               child: Text(
@@ -139,12 +162,10 @@ class MapPageState extends State<MapPage> {
               ),
             ),
           ),
-
-          // Loading Indicator
           if (_isLoading)
             Center(
               child: CircularProgressIndicator(
-                color: Color.fromRGBO(51, 108, 138, 1),
+                color: const Color.fromRGBO(51, 108, 138, 1),
               ),
             ),
         ],
@@ -152,7 +173,7 @@ class MapPageState extends State<MapPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _getCurrentLocation,
         backgroundColor: const Color.fromRGBO(51, 108, 138, 1),
-        child: Icon(Icons.my_location, color: Colors.white),
+        child: const Icon(Icons.my_location, color: Colors.white),
       ),
     );
   }
