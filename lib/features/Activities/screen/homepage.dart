@@ -425,6 +425,7 @@ class HomepageState extends State<Homepage> {
         ),
       ],
     );
+
   }
 
   Widget _buildSectionTitle(String title) {
