@@ -2,6 +2,7 @@ import 'package:fishmaster/controllers/global_controller.dart';
 import 'package:fishmaster/features/Activities/fish_name_string/tamilfish.dart';
 import 'package:fishmaster/features/Activities/screen/marineweatherpage.dart';
 import 'package:fishmaster/features/Activities/screen/searchPage.dart';
+import 'package:fishmaster/features/auth/auth_service.dart';
 import 'package:fishmaster/models/Marine/finalmarineData/marine_data.dart';
 import 'package:fishmaster/utils/constants/day_date.dart';
 import 'package:flutter/material.dart';
@@ -28,12 +29,37 @@ class Homepage extends StatefulWidget {
 
 class HomepageState extends State<Homepage> {
   final GlobalController globalController = Get.find<GlobalController>();
+  final AuthService authService = Get.find<AuthService>();
   String selectedGear = "Hook & Line";
   String searchText = "";
 
   List<TamilFish> allFishes = fishList;
   // ignore: unused_field
   int _currentIndex = 0;
+
+  void _navigateToFishingArea() {
+    if (!authService.isLoggedIn.value) {
+      // Navigate to profile page if not logged in
+      Get.toNamed('/profile');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please login to access fishing areas'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // Navigate to fishing area if logged in
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FishingAreaNearby(
+            selectedGear: selectedGear,
+            selectedFishes: searchText,
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,15 +92,15 @@ class HomepageState extends State<Homepage> {
               location: "$city, $state",
               date: formattedDate,
               temperature:
-                  "${weather.current?.current.temp?.toStringAsFixed(1) ?? 'N/A'}°C",
+              "${weather.current?.current.temp?.toStringAsFixed(1) ?? 'N/A'}°C",
               rainLevel:
-                  "${weather.minutely?.minutely.firstOrNull?.precipitation ?? 'N/A'}",
+              "${weather.minutely?.minutely.firstOrNull?.precipitation ?? 'N/A'}",
               waveHeight:
-                  "${marineWeather.current?.current.waveHeight?.toStringAsFixed(1) ?? 'N/A'} ${marineWeather.currentunits?.currentunits.waveHeight ?? ''}",
+              "${marineWeather.current?.current.waveHeight?.toStringAsFixed(1) ?? 'N/A'} ${marineWeather.currentunits?.currentunits.waveHeight ?? ''}",
               ssT:
-                  "${marineWeather.current?.current.seaSurfaceTemperature?.toStringAsFixed(1) ?? 'N/A'} ${marineWeather.currentunits?.currentunits.seaSurfaceTemperature ?? ''}",
+              "${marineWeather.current?.current.seaSurfaceTemperature?.toStringAsFixed(1) ?? 'N/A'} ${marineWeather.currentunits?.currentunits.seaSurfaceTemperature ?? ''}",
               windSpeed:
-                  "${weather.current?.current.windSpeed?.toStringAsFixed(1) ?? 'N/A'} m/s",
+              "${weather.current?.current.windSpeed?.toStringAsFixed(1) ?? 'N/A'} m/s",
             ),
             const SizedBox(height: 20),
             _buildSearchBar(context),
@@ -387,17 +413,7 @@ class HomepageState extends State<Homepage> {
         const SizedBox(width: 12),
         Expanded(
           child: ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FishingAreaNearby(
-                    selectedGear: selectedGear,
-                    selectedFishes: searchText,
-                  ),
-                ),
-              );
-            },
+            onPressed: _navigateToFishingArea,
             style: ElevatedButton.styleFrom(
               backgroundColor: Color.fromRGBO(16, 81, 171, 1.0),
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -425,7 +441,6 @@ class HomepageState extends State<Homepage> {
         ),
       ],
     );
-
   }
 
   Widget _buildSectionTitle(String title) {

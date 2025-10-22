@@ -11,6 +11,9 @@ import 'package:fishmaster/features/Activities/fish_name_string/tamilfish.dart';
 import '../compass/compass_widget.dart';
 import '../compass/location_utils.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:get/get.dart';
+import 'package:fishmaster/features/auth/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FishingAreaNearby extends StatefulWidget {
   final String selectedGear;
@@ -43,8 +46,13 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
   int mediumEffortTimer = 0;
   int highEffortTimer = 0;
   Timer? _effortTimer;
+  Timer? _locationTrackerTimer;
 
   bool _startedFishing = false;
+  List<String> _fishingSessionData = [];
+  DateTime? _fishingStartTime;
+  final AuthService _authService = Get.find<AuthService>();
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(13.1039, 80.2901),
@@ -242,8 +250,13 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
     setState(() {
       _startedFishing = true;
       _currentEffortZone = getCurrentEffortZone();
+      _fishingStartTime = DateTime.now();
+      _fishingSessionData.clear();
     });
     _updatePolyline();
+
+    // Start tracking location every 5 minutes
+    _startLocationTracking();
 
     _effortTimer?.cancel();
     _effortTimer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
@@ -260,6 +273,86 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
         _checkTimeExceeded();
       }
     });
+  }
+
+  void _startLocationTracking() {
+    // Record initial location
+    _recordLocation();
+
+    // Start timer to record location every 5 minutes
+    _locationTrackerTimer = Timer.periodic(const Duration(minutes: 5), (Timer t) {
+      _recordLocation();
+    });
+  }
+
+  void _recordLocation() {
+    if (_userLocation != null) {
+      final now = DateTime.now();
+      final locationData = '${_userLocation!.latitude},${_userLocation!.longitude},${now.toIso8601String()}';
+      _fishingSessionData.add(locationData);
+      print('Recorded location: $locationData');
+    }
+  }
+
+  Future<void> _stopFishing() async {
+    _effortTimer?.cancel();
+    _locationTrackerTimer?.cancel();
+
+    if (_fishingSessionData.isNotEmpty && _fishingStartTime != null) {
+      await _saveFishingSessionToSupabase();
+    }
+
+    setState(() {
+      _startedFishing = false;
+      _polylines.clear();
+      _fishingSessionData.clear();
+      _fishingStartTime = null;
+    });
+  }
+
+  Future<void> _saveFishingSessionToSupabase() async {
+    try {
+      if (!_authService.isLoggedIn.value) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User not logged in')),
+        );
+        return;
+      }
+
+      final sessionData = {
+        'user_id': _authService.currentUser['id'],
+        'start_time': _fishingStartTime!.toIso8601String(),
+        'end_time': DateTime.now().toIso8601String(),
+        'fishing_gear': widget.selectedGear,
+        'target_fishes': widget.selectedFishes,
+        'location_data': _fishingSessionData.join(';'),
+        'total_duration_seconds': highEffortTimer + mediumEffortTimer + lowEffortTimer,
+        'low_effort_time': lowEffortTimer,
+        'medium_effort_time': mediumEffortTimer,
+        'high_effort_time': highEffortTimer,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      // Correct way to insert data in Supabase Flutter
+      final response = await _supabase
+          .from('fishing_sessions')
+          .insert(sessionData);
+
+      // In newer versions of supabase_flutter, you can just await the insert
+      // If there's an error, it will throw an exception
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Fishing session saved successfully!')),
+      );
+
+      print('Fishing session saved: ${_fishingSessionData.length} location points');
+
+    } catch (e) {
+      print('Error saving fishing session: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving fishing session: ${e.toString()}')),
+      );
+    }
   }
 
   void _startLocationUpdates() {
@@ -660,6 +753,7 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
   @override
   void dispose() {
     _effortTimer?.cancel();
+    _locationTrackerTimer?.cancel();
     _mapController?.dispose();
     super.dispose();
   }
@@ -769,31 +863,24 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (_startedFishing)
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _startedFishing = false;
-                            _effortTimer?.cancel();
-                            _polylines.clear();
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromRGBO(16, 81, 171, 1.0),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: const Text(
-                          "Stop Fishing",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    ElevatedButton(
+                      onPressed: _stopFishing,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromRGBO(16, 81, 171, 1.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
+                      child: const Text(
+                        "Stop Fishing",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
@@ -805,6 +892,17 @@ class FishingAreaNearbyState extends State<FishingAreaNearby> {
                         ),
                       ),
                     ),
+                    if (_fishingSessionData.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          "Location points recorded: ${_fishingSessionData.length}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
