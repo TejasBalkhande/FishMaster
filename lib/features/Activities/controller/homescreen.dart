@@ -1,9 +1,8 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:fishmaster/controllers/global_controller.dart';
 import 'package:fishmaster/features/Activities/screen/chatbot/chatbot.dart';
-import 'package:fishmaster/features/Activities/screen/homepage.dart';
 import 'package:fishmaster/features/Activities/screen/profile.dart';
+import 'package:fishmaster/features/Activities/screen/homepage.dart';
+import 'package:fishmaster/features/location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -15,8 +14,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final GlobalController globalController =
-      Get.put(GlobalController(), permanent: true);
+  final GlobalController globalController = Get.find<GlobalController>();
+  final LocationService locationService = Get.put(LocationService());
   int _selectedIndex = 0;
   DateTime? currentBackPressTime;
 
@@ -26,10 +25,28 @@ class _HomeScreenState extends State<HomeScreen> {
     Profile(),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    // Don't start location tracking automatically
+    // Wait for user to start fishing manually
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  NavigationDestination _buildNavItem(IconData icon, String label, int index) {
+    return NavigationDestination(
+      icon: Icon(
+        icon,
+        color: _selectedIndex == index ? Colors.white : Colors.black,
+        size: 22,
+      ),
+      label: label,
+    );
   }
 
   @override
@@ -95,20 +112,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       );
-<<<<<<< HEAD
-=======
     });
->>>>>>> e0fa1afeefd587ea24a89206cd6abf68bfc87945
   }
 
-  NavigationDestination _buildNavItem(IconData icon, String label, int index) {
-    return NavigationDestination(
-      icon: Icon(
-        icon,
-        color: _selectedIndex == index ? Colors.white : Colors.black,
-        size: 22,
-      ),
-      label: label,
-    );
+  @override
+  void dispose() {
+    // Only stop location tracking if it was started
+    if (locationService.isTracking.value) {
+      locationService.stopLocationTracking();
+    }
+    super.dispose();
   }
 }

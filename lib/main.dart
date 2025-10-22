@@ -1,19 +1,16 @@
 import 'dart:async';
 import 'package:fishmaster/controllers/global_controller.dart';
+import 'package:fishmaster/features/auth/auth_service.dart';
 import 'package:fishmaster/features/Activities/alerts/geofence_service.dart';
 import 'package:fishmaster/features/Activities/controller/homescreen.dart';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _initializeAppWithRetry(); // Initialize the app with retry logic (For cold-boot/1st run after install issue)
+  await _initializeAppWithRetry();
 }
-
-// Tejas this is a cold-boot/1st run after install issue, so we need to retry the initialization of the app if it fails. This is because the app may not have the necessary permissions or resources available on the first run, and we need to give it a chance to initialize properly before showing the error screen.
-// Create a permanent solve for this later (Prolly resource and permission check.)
 
 Future<void> _initializeAppWithRetry({
   int maxRetries = 6,
@@ -24,6 +21,8 @@ Future<void> _initializeAppWithRetry({
   while (attempt < maxRetries) {
     try {
       await GetStorage.init();
+      await AuthService.initialize();
+
       await Future.wait([
         Get.putAsync<GeofenceService>(() async {
           final service = GeofenceService();
@@ -40,7 +39,7 @@ Future<void> _initializeAppWithRetry({
       ], eagerError: true);
 
       runApp(const App());
-      return; // Success - exit the retry loop
+      return;
     } catch (e) {
       attempt++;
       print('Initialization attempt $attempt failed: $e');
@@ -49,7 +48,6 @@ Future<void> _initializeAppWithRetry({
         _showFinalErrorScreen(e);
         return;
       }
-      // Exponential backoff
       delaySeconds *= 2;
       print('Retrying in $delaySeconds seconds...');
       await Future.delayed(Duration(seconds: delaySeconds));
@@ -84,22 +82,30 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      home: FutureBuilder(
-        future: Future.delayed(Duration(seconds: 2)), // Minimum splash time
-        builder: (context, snapshot) {
-          return Obx(() {
-            final controller = Get.find<GlobalController>();
-            if (controller.isLoading.value) {
-              return SplashScreen(
-                progress: controller.loadingProgress.value,
-                error: controller.error.value,
-              );
-            }
-            return HomeScreen();
-          });
-        },
-      ),
+      home: AppWrapper(),
+      getPages: [
+        GetPage(name: '/', page: () => HomeScreen()),
+      ],
     );
+  }
+}
+
+class AppWrapper extends StatelessWidget {
+  final AuthService authService = Get.find<AuthService>();
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (authService.isLoading.value) {
+        return SplashScreen(
+          progress: 0.5,
+          error: null,
+        );
+      }
+
+      // ALWAYS show HomeScreen regardless of login status
+      return HomeScreen();
+    });
   }
 }
 
@@ -125,7 +131,7 @@ class SplashScreen extends StatelessWidget {
             ),
             SizedBox(height: 20),
             if (error != null) ...[
-              Text('Loading your fishing data...'),
+              Text('Error: $error'),
               SizedBox(height: 10),
             ] else ...[
               Text('Loading your fishing data...'),
